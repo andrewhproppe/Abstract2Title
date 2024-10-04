@@ -3,6 +3,7 @@ import random
 import sqlite3
 import re
 
+import pandas as pd
 from tqdm import tqdm
 from src.utils import paths
 
@@ -173,7 +174,7 @@ def print_paper_info_db(paper_tuple):
     print("-" * 80)
 
 
-def fetch_papers_for_training(db_name='arxiv_papers.db', limit=100, root_dir='databases'):
+def fetch_papers_for_training(db_name='arxiv_papers.db', limit=100):
     """
     Fetch the abstract and title of a limited number of papers from the database.
 
@@ -200,3 +201,15 @@ def preprocess_text(text):
     text = re.sub(r'\s+', ' ', text)  # Remove multiple spaces
     text = text.strip()  # Remove leading/trailing spaces
     return text
+
+
+def abstract_title_pairs_to_pandas(abstract_title_pairs):
+    abstracts, titles = zip(*abstract_title_pairs)
+    papers = pd.DataFrame({
+        'abstract': abstracts,
+        'title': titles
+    })
+    papers = papers[['abstract', 'title']]
+    papers.columns = ['input_text', 'target_text']
+    papers = papers.dropna()
+    return papers

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predict Paper Title</title>
+</head>
+<body>
+    <h1>Enter Paper Abstract</h1>
+
+    <!-- Display error if it exists -->
+    {% if error %}
+    <div style="color: red; font-weight: bold;">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    <form action="/predict" method="POST">
+        <textarea name="abstract" rows="10" cols="50" placeholder="Enter the abstract here..."></textarea><br>
+        <input type="submit" value="Predict Title">
+    </form>
+</body>
+</html>
