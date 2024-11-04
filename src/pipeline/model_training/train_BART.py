@@ -1,88 +1,76 @@
 import torch
-from transformers import BertTokenizer, BertModel, EncoderDecoderModel
+from transformers import BartForConditionalGeneration, BartTokenizer, Trainer, TrainingArguments
 from datasets import Dataset
-from sklearn.model_selection import train_test_split
+import pandas as pd
 from src.data.data import fetch_papers_for_training, abstract_title_pairs_to_pandas
-from transformers import Seq2SeqTrainer, Seq2SeqTrainingArguments
+
+# Load the pre-trained BART model and tokenizer
+model_name = "facebook/bart-base"  # You can also use "facebook/bart-base" for a smaller version
+tokenizer = BartTokenizer.from_pretrained(model_name)
+model = BartForConditionalGeneration.from_pretrained(model_name)
 
 # Check if a GPU is available
 device = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
-
-model_name = "bert-base-uncased"
-
-# Initialize the tokenizer
-tokenizer = BertTokenizer.from_pretrained(model_name)
-
-# Initialize encoder and decoder models separately
-encoder = BertModel.from_pretrained(model_name)
-decoder = BertModel.from_pretrained(model_name)  # Can be the same model or a different one
-
-# Create the Encoder-Decoder model
-model = EncoderDecoderModel(encoder=encoder, decoder=decoder)
-
-# Set the decoder_start_token_id
-model.config.decoder_start_token_id = tokenizer.cls_token_id  # Typically, BERT uses [CLS] for this
 
 # Fetch data
 abstract_title_pairs = fetch_papers_for_training(limit=1000, db_name='arxiv_papers_1000n.db')
 papers = abstract_title_pairs_to_pandas(abstract_title_pairs)
 
-# Split the dataset
-train_df, eval_df = train_test_split(papers, test_size=0.1)
+# Convert pandas DataFrame to Hugging Face Dataset
+dataset = Dataset.from_pandas(papers)
 
-# Convert to Hugging Face Dataset format
-train_dataset = Dataset.from_pandas(train_df)
-eval_dataset = Dataset.from_pandas(eval_df)
+# Define a preprocessing function for tokenizing the input and target text
+def preprocess_data(examples):
+    inputs = [abstract for abstract in examples["input_text"]]
+    targets = [title for title in examples["target_text"]]
 
-# Custom tokenize function for seq2seq
-def tokenize_function(examples):
-    # Tokenize inputs and outputs
-    inputs = tokenizer(examples["input_text"], padding="max_length", truncation=True, max_length=512)
-    outputs = tokenizer(examples["target_text"], padding="max_length", truncation=True, max_length=128)
+    # Tokenize inputs and targets
+    model_inputs = tokenizer(inputs, max_length=512, truncation=True, padding="max_length")
 
-    # Combine the tokenized inputs and outputs
-    return {
-        "input_ids": inputs["input_ids"],
-        "attention_mask": inputs["attention_mask"],
-        "labels": outputs["input_ids"],  # Use the output token IDs as labels
-    }
+    # Tokenize targets with labels
+    with tokenizer.as_target_tokenizer():
+        labels = tokenizer(targets, max_length=128, truncation=True, padding="max_length")
 
-# Tokenize the datasets
-tokenized_train = train_dataset.map(tokenize_function, batched=True)
-tokenized_eval = eval_dataset.map(tokenize_function, batched=True)
+    model_inputs["labels"] = labels["input_ids"]
+    return model_inputs
 
-# Set up training arguments
-training_args = Seq2SeqTrainingArguments(
-    output_dir="./results",
-    evaluation_strategy="epoch",
-    learning_rate=2e-5,
-    per_device_train_batch_size=1,
-    per_device_eval_batch_size=1,
-    num_train_epochs=3,
-    weight_decay=0.01,
-    save_total_limit=1,
-    predict_with_generate=True,  # Important for seq2seq tasks
+
+# Apply the preprocessing function to the entire dataset
+tokenized_dataset = dataset.map(preprocess_data, batched=True)
+
+training_args = TrainingArguments(
+    output_dir="./results",           # Output directory
+    evaluation_strategy="epoch",      # Evaluate at the end of each epoch
+    learning_rate=2e-5,               # Adjust as needed
+    per_device_train_batch_size=4,    # Batch size for training
+    per_device_eval_batch_size=4,     # Batch size for evaluation
+    num_train_epochs=3,               # Number of epochs
+    weight_decay=0.01,                # Strength of weight decay
+    logging_dir="./logs",             # Directory for storing logs
+    logging_steps=10,
+    save_steps=500,
+    save_total_limit=2                # Save the last 2 checkpoints only
 )
 
-# Define the trainer
-trainer = Seq2SeqTrainer(
+# Initialize Trainer
+trainer = Trainer(
     model=model,
     args=training_args,
-    train_dataset=tokenized_train,
-    eval_dataset=tokenized_eval,
+    train_dataset=tokenized_dataset,
+    eval_dataset=tokenized_dataset,  # You may split your data for evaluation
 )
 
 # Train the model
 trainer.train()
 
-# Generate titles from the abstracts
-def generate_title(abstract):
-    input_ids = tokenizer(abstract, return_tensors="pt", padding=True, truncation=True, max_length=512).input_ids.to(device)
-    generated_ids = model.generate(input_ids, max_length=128, num_beams=5, early_stopping=True)
-    title = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
-    return title
+# Sample input text (an abstract)
+input_text = papers['input_text'][0]
 
-# Example usage
-abstract_example = "Quantum computing is a rapidly evolving field of computer science that focuses on the development of computers..."
-generated_title = generate_title(abstract_example)
+# Tokenize input
+inputs = tokenizer(input_text, return_tensors="pt", max_length=512, truncation=True)
+
+# Generate title
+output_ids = model.generate(inputs["input_ids"].to(model.device), max_length=128, num_beams=4, early_stopping=True)
+generated_title = tokenizer.decode(output_ids[0], skip_special_tokens=True)
+
 print("Generated Title:", generated_title)
