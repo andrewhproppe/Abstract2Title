@@ -5,7 +5,7 @@ import pandas as pd
 from src.data.data import fetch_papers_for_training, abstract_title_pairs_to_pandas
 
 # Load the pre-trained BART model and tokenizer
-model_name = "facebook/bart-base"  # You can also use "facebook/bart-base" for a smaller version
+model_name = "facebook/bart-large"  # You can also use "facebook/bart-base" for a smaller version
 tokenizer = BartTokenizer.from_pretrained(model_name)
 model = BartForConditionalGeneration.from_pretrained(model_name)
 
@@ -39,7 +39,8 @@ def preprocess_data(examples):
 tokenized_dataset = dataset.map(preprocess_data, batched=True)
 
 training_args = TrainingArguments(
-    output_dir="./results",           # Output directory
+    output_dir="./results_BART",           # Output directory
+    save_strategy="epoch",
     evaluation_strategy="epoch",      # Evaluate at the end of each epoch
     learning_rate=2e-5,               # Adjust as needed
     per_device_train_batch_size=4,    # Batch size for training
@@ -49,7 +50,8 @@ training_args = TrainingArguments(
     logging_dir="./logs",             # Directory for storing logs
     logging_steps=10,
     save_steps=500,
-    save_total_limit=2                # Save the last 2 checkpoints only
+    save_total_limit=2,               # Save the last 2 checkpoints only
+	report_to="none",
 )
 
 # Initialize Trainer
@@ -63,6 +65,11 @@ trainer = Trainer(
 # Train the model
 trainer.train()
 
+# Save the model
+# model.save_pretrained("./fine_tuned_bart")
+# tokenizer.save_pretrained("./fine_tuned_bart")
+
+#
 # Sample input text (an abstract)
 input_text = papers['input_text'][0]
 
