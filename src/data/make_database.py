@@ -5,7 +5,7 @@ from src.data.data import load_arxiv_metadata, print_paper_info, create_database
 if __name__ == "__main__":
     # Specify the file and number of papers to extract
     arxiv_file = 'datasets/204/arxiv-metadata-oai-snapshot.json'
-    n_papers = 1000
+    n_papers = 10000
     random_select = True  # Set to False if you want papers in order
     db_name = f'arxiv_papers_{n_papers}n.db'
 
