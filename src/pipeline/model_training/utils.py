@@ -1,7 +1,6 @@
 import random
 from transformers import TrainerCallback
 
-
 class PredictionCallback(TrainerCallback):
     def __init__(self, model, tokenizer, dataset, log_interval=10, prepend_text=None):
         self.model = model
@@ -15,8 +14,8 @@ class PredictionCallback(TrainerCallback):
         if state.global_step % self.log_interval == 0:
             # Randomly select a sample from the dataset
             sample_index = random.randint(0, len(self.dataset) - 1)
-            sample_input = self.dataset[sample_index]["input_text"]
-            original_title = self.dataset[sample_index]["target_text"]
+            sample_input = self.dataset[sample_index]["abstract"]
+            original_title = self.dataset[sample_index]["title"]
 
             # Prepend text if specified (e.g., "summarize: ")
             if self.prepend_text:
