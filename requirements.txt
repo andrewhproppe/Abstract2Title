@@ -1,9 +1,0 @@
-fastapi==0.115.4
-Flask==3.0.3
-kagglehub==0.3.3
-pandas==2.2.3
-simpletransformers==0.70.1
-starlette==0.41.2
-torch==2.2.2
-tqdm==4.66.5
-transformers==4.45.1

@@ -1,5 +1,7 @@
 import random
+
 from transformers import TrainerCallback
+
 
 class PredictionCallback(TrainerCallback):
     def __init__(self, model, tokenizer, dataset, log_interval=10, prepend_text=None):
@@ -22,11 +24,15 @@ class PredictionCallback(TrainerCallback):
                 sample_input = f"{self.prepend_text} {sample_input}"
 
             # Tokenize the sample abstract
-            inputs = self.tokenizer(sample_input, return_tensors="pt", padding=True, truncation=True, max_length=512)
+            inputs = self.tokenizer(
+                sample_input, return_tensors="pt", padding=True, truncation=True, max_length=512
+            )
             input_ids = inputs["input_ids"].to(args.device)
 
             # Generate a title prediction
-            outputs = self.model.generate(input_ids, max_length=128, num_beams=4, early_stopping=True)
+            outputs = self.model.generate(
+                input_ids, max_length=128, num_beams=4, early_stopping=True
+            )
 
             # Decode the generated title and print it
             predicted_title = self.tokenizer.decode(outputs[0], skip_special_tokens=True)

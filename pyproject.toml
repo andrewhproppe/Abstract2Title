@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools >= 64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+requires-python = ">= 3.12"
+name = "abstract2title"
+version = "0.1"
+description="Predict paper titles from abstract (your mileage may and probably will vary)."
+dependencies=[
+    "fastapi>=0.115.4",
+    "Flask>=3.0.3",
+    "kagglehub>=0.3.3",
+    "pandas>=2.2.3",
+    "simpletransformers>=0.70.1",
+    "starlette>=0.41.2",
+    "torch>=2.2.2",
+    "tqdm>=4.66.5",
+    "transformers>=4.45.1",
+    "uvicorn>=0.38.0",
+    "numpy<=2.0",
+]
+[project.optional-dependencies]
+test = [
+    "pytest>=8.3.2",
+    "pytest-xdist>=3.6.1",
+]
+all = ["abstract2title[sindy, test]"]
+
+[project.scripts]
+models = "abstract2title.cli:cli"
+
+[tool.ruff]
+include = ["pyproject.toml", "abstract2title/**/*.py", "abstract2title/*.py"]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "D1", "I", "C90"]
+ignore = ["D104", "D107"]

@@ -1,17 +1,18 @@
-import kagglehub
 import os
 import shutil
+
+import kagglehub
+
+from abstract2title.paths import DATA_DIR
 
 # Download latest version
 path = kagglehub.dataset_download("Cornell-University/arxiv")
 print("Path to dataset files:", path)
 
 # Define the destination directory (current directory)
-destination_dir = os.getcwd()
+destination_dir = DATA_DIR / "raw"
 
 # Move the downloaded files to the destination directory
-# shutil.move will raise an error if moving a directory that already exists in the destination,
-# so we can handle it in a try-except block
 try:
     shutil.move(path, destination_dir)
     print(f"Dataset moved to: {destination_dir}")
